@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Ko-Labz Persistence Hub</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css?v=__BUILD__">
+  <script type="importmap">
+    { "imports": {
+      "three": "/vendor/three/build/three.module.js",
+      "three/addons/": "/vendor/three/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="labels"></div>
+  <div class="vignette"></div>
+  <div id="warp-flash"></div>
+
+  <!-- Boot -->
+  <div id="boot">
+    <div class="boot-inner">
+      <div class="boot-logo">KO<span>-</span>LABZ</div>
+      <div class="boot-line" id="boot-line">ESTABLISHING UPLINK</div>
+      <div class="boot-bar"><i></i></div>
+    </div>
+  </div>
+
+  <!-- Top left: brand + helm -->
+  <header class="hud tl">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" class="brand-mark" aria-hidden="true"><circle cx="20" cy="20" r="5" /><circle cx="20" cy="20" r="11" class="o1"/><circle cx="20" cy="20" r="17" class="o2"/><circle cx="31" cy="20" r="2.2" class="p1"/><circle cx="8" cy="12" r="2.6" class="p2"/></svg>
+      <div><h1>ko-Labz</h1><small>PERSISTENCE HUB</small></div>
+    </div>
+    <div id="helm" class="helm"></div>
+  </header>
+
+  <!-- Top center: directive -->
+  <div class="hud tc">
+    <nav class="crumbs">
+      <button id="crumb-galaxy" class="crumb">STAR MAP</button>
+      <span id="crumb-sep" class="crumb-sep">/</span>
+      <span id="crumb-project" class="crumb current"></span>
+    </nav>
+    <div class="directive panel">
+      <p id="directive-kicker">PRIMARY DIRECTIVE</p>
+      <h2 id="directive-title">SYSTEM INIT...</h2>
+      <div class="dual-bar"><div class="bar minor"><i id="bar-minor"></i></div><div class="bar major"><i id="bar-major"></i></div></div>
+      <div id="directive-meta" class="directive-meta"></div>
+    </div>
+  </div>
+
+  <!-- Top right: crew scoreboard -->
+  <aside class="hud tr">
+    <div class="scoreboard panel">
+      <h3><span>LOGISTICS STATUS</span><button id="btn-crew" class="mini-link" title="Crew manifest (C)">CREW</button></h3>
+      <div id="scoreboard"></div>
+    </div>
+  </aside>
+
+  <!-- Left: stream + review queue -->
+  <aside class="hud left">
+    <section class="panel queue" id="queue-panel" hidden>
+      <h4><span id="queue-title">INCOMING OFFERS</span><b id="queue-count">0</b></h4>
+      <div id="queue"></div>
+    </section>
+    <section class="panel stream">
+      <h4><span>ACTIVITY STREAM</span><i class="live-dot" id="live-dot" title="Live link to the hub"></i></h4>
+      <div id="stream" class="stream-list"></div>
+    </section>
+  </aside>
+
+  <!-- Bottom center: command console -->
+  <div class="hud bc console">
+    <div class="side-group">
+      <button class="cmd-btn" id="cmd-a" data-key="1"><span class="cmd-key">1</span><span class="cmd-text"></span></button>
+      <button class="cmd-btn" id="cmd-b" data-key="2"><span class="cmd-key">2</span><span class="cmd-text"></span></button>
+    </div>
+    <div class="hex">
+      <div class="hex-inner">
+        <div id="view-intel" class="hex-view active">
+          <div id="intel-tag" class="ring-tag">SCANNING SECTOR</div>
+          <h3 id="intel-title" class="hex-title">Select Module</h3>
+          <p id="intel-desc" class="hex-desc"></p>
+          <div id="intel-extra" class="hex-extra"></div>
+          <div id="intel-hint" class="hex-hint">SYSTEM READY</div>
+        </div>
+        <form id="view-action" class="hex-view" autocomplete="off">
+          <div id="form-tag" class="ring-tag">INPUT DATA</div>
+          <div id="form-fields" class="hex-form"></div>
+          <div class="hex-btn-row">
+            <button type="button" class="hex-cancel" id="hex-cancel">ABORT</button>
+            <button type="submit" class="hex-commit" id="hex-commit">EXECUTE ASSIST</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="side-group">
+      <button class="cmd-btn right" id="cmd-c" data-key="3"><span class="cmd-text"></span><span class="cmd-key">3</span></button>
+      <button class="cmd-btn right" id="cmd-d" data-key="4"><span class="cmd-text"></span><span class="cmd-key">4</span></button>
+    </div>
+  </div>
+
+  <!-- Bottom right: utilities -->
+  <div class="hud br utility">
+    <button id="btn-ledger" class="small-btn" title="Mission ledger (L)">Ledger</button>
+    <button id="btn-settings" class="small-btn" title="Systems (S)">Systems</button>
+    <button id="btn-sound" class="small-btn" title="Sound (M)">Sound</button>
+    <button id="btn-help" class="small-btn" title="Controls (?)">?</button>
+  </div>
+
+  <!-- Drawer -->
+  <div id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div><p id="drawer-kicker">PANEL</p><h2 id="drawer-title">Panel</h2></div>
+      <button class="drawer-close" id="drawer-close" aria-label="Close">✕</button>
+    </div>
+    <div id="drawer-body" class="drawer-body"></div>
+  </div>
+
+  <!-- Briefing (setup) -->
+  <div id="briefing" class="overlay" hidden>
+    <form class="briefing" id="briefing-form" autocomplete="off">
+      <div class="briefing-head">
+        <h2 id="briefing-title">Mission Briefing</h2>
+        <p id="briefing-sub">OPERATIONAL CLEARANCE REQUIRED</p>
+      </div>
+      <section class="panel b-section" id="b-crew">
+        <div class="b-title">CREW MANIFEST <em>who is playing</em></div>
+        <div id="b-crew-rows" class="b-crew-rows"></div>
+        <button type="button" class="ghost-btn" id="b-crew-add">+ Add crew member</button>
+      </section>
+      <section class="panel b-section">
+        <div class="b-title">CORE PARAMETERS</div>
+        <div class="b-grid">
+          <label class="b-field"><span>Project Owner</span><select id="b-owner" class="input"></select></label>
+          <label class="b-field"><span>Project Title</span><input id="b-title" class="input" maxlength="60" placeholder="Enter mission name"></label>
+        </div>
+        <label class="b-field"><span>Strategic Vision</span><textarea id="b-vision" class="input" rows="2" maxlength="600" placeholder="What does done look like?"></textarea></label>
+        <div class="b-templates"><span>TEMPLATES</span><div id="b-template-list"></div></div>
+      </section>
+      <section class="panel b-section minor">
+        <div class="b-title">MINOR RING <em>quick wins, 10 pts each</em></div>
+        <div id="b-minor" class="b-needs"></div>
+        <button type="button" class="ghost-btn" data-add="minor">+ Add minor need</button>
+      </section>
+      <section class="panel b-section major">
+        <div class="b-title">MAJOR RING <em>the big lifts, 25 pts each</em></div>
+        <div id="b-major" class="b-needs"></div>
+        <button type="button" class="ghost-btn" data-add="major">+ Add major need</button>
+      </section>
+      <p id="briefing-error" class="form-error" role="alert"></p>
+      <div class="briefing-foot">
+        <button type="button" class="btn danger" id="b-cancel">Abort</button>
+        <button type="submit" class="btn primary" id="b-go">Initiate Mission</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Confirm -->
+  <div id="confirm" class="overlay small" hidden>
+    <form class="confirm panel" id="confirm-form">
+      <h3 id="confirm-title">Confirm</h3>
+      <p id="confirm-text"></p>
+      <input id="confirm-input" class="input" hidden>
+      <div class="confirm-row">
+        <button type="button" class="btn" id="confirm-no">Cancel</button>
+        <button type="submit" class="btn danger" id="confirm-yes">Confirm</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="banner" class="banner" hidden>
+    <div class="banner-burst"></div>
+    <p class="banner-kicker">ALL MISSION PARAMETERS FULFILLED</p>
+    <h1>PROJECT COMPLETE</h1>
+    <h2 id="banner-project"></h2>
+    <button class="btn primary" id="banner-ok">Continue</button>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script type="module" src="/app.js?v=__BUILD__"></script>
+</body>
+</html>

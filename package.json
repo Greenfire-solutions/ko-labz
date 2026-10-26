@@ -1,0 +1,23 @@
+{
+  "name": "ko-labz",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ko-Labz Persistence Hub: a shared 3D star map where a crew helps each other finish projects.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "e2e": "node test/e2e.mjs",
+    "check": "npm test && npm run e2e",
+    "screenshots": "node test/e2e.mjs --shots docs"
+  },
+  "dependencies": {
+    "three": "0.160.0",
+    "@fontsource/orbitron": "5.1.0",
+    "@fontsource/rajdhani": "5.1.0",
+    "@fontsource/jetbrains-mono": "5.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
