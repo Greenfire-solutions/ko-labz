@@ -108,6 +108,20 @@ npm run check      # both
 
 The browser test needs Google Chrome installed (or `CHROME_PATH`).
 
+## Make it your own (with Claude Code)
+
+Clone it, run `npm install`, open the folder in Claude Code. `CLAUDE.md` tells Claude
+where the rules live and which ports the tests use, so you can just ask. Some starting points:
+
+- "Add a fifth template for a music festival, with four minor and three major needs."
+  (Templates live in `shared/rules.mjs`.)
+- "Make accepting a connection offer worth 9 points instead of 7, and update the tests."
+- "Add a badge for helping three different crew members in one week."
+- "Change the colour scheme from cyan to warm amber." (`public/style.css` and `public/scene.js`.)
+- "Add a CSV export of the Mission Ledger."
+
+Run `npm test` after each change; `npm run e2e` too if you changed anything in `public/`.
+
 ## Ship it
 
     bash scripts/package.sh      # both Macs; "x64" or "arm64" for one
