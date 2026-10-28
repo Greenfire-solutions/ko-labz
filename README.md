@@ -4,6 +4,17 @@
 
 ![The star map](docs/star-map.png)
 
+## Download for Mac (free)
+
+Nothing to install first. Download the zip for your Mac, unzip it, and double-click
+**Start Ko-Labz** inside the folder (the first time, right-click it and choose Open).
+Read **READ ME FIRST.txt** in the folder for the rest.
+
+- [Intel Mac](https://github.com/Greenfire-solutions/ko-labz/releases/latest/download/Ko-Labz-Intel-Mac.zip)
+- [Apple Silicon Mac (M1 and newer)](https://github.com/Greenfire-solutions/ko-labz/releases/latest/download/Ko-Labz-Apple-Silicon.zip)
+
+Not sure which Mac you have? Apple menu, About This Mac: "Chip: Apple M..." is Apple Silicon, "Processor: Intel" is Intel.
+
 Every project is a star system. The project is the sun; what it needs orbits it as
 planets: quick wins on the inner **minor ring**, big lifts on the outer **major ring**.
 Crew members help each other's projects in one of three ways:
