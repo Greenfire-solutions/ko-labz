@@ -1,0 +1,109 @@
+KO-LABZ
+
+A crew game for finishing real projects together, on a 3D star map.
+Every project is a star system; what it needs orbits it as planets. Your
+crew helps each other's projects, earns points and badges, and keeps a
+record of every bit of help in the Mission Ledger.
+
+Everything runs on this Mac. Nothing is sent anywhere, there is no
+account to make, and it needs no internet after the first start.
+
+
+1. MOVE THIS FOLDER INTO APPLICATIONS
+
+   Drag the whole "Ko-Labz" folder into Applications (in Finder: Go,
+   Applications). Keep everything in the folder together. It works from
+   anywhere, but from Downloads, Documents or the Desktop your Mac may ask
+   for permission first.
+
+
+2. START IT
+
+   Double-click "Start Ko-Labz" (the icon with the little star system).
+
+   The first time, your Mac may say it cannot check the developer, or that
+   the app is from an unidentified developer. That is normal for a
+   download. To open it anyway:
+
+     - macOS 15 (Sequoia) or newer: click Done. Open System Settings,
+       then Privacy and Security, scroll down, and click "Open Anyway"
+       next to Start Ko-Labz. Double-click it again and choose Open.
+     - macOS 12, 13 or 14 (Monterey, Ventura, Sonoma): right-click (or
+       Control-click) "Start Ko-Labz", choose Open, then click Open.
+
+   You only do this once. If the icon will not open at all, double-click
+   "Start Ko-Labz.command" in the same folder instead; it does the same
+   thing (allow it the same way if your Mac asks).
+
+   Ko-Labz opens in your web browser at http://127.0.0.1:8350.
+   Bookmark that page. Clicking the icon again just brings the page back.
+
+
+3. SET UP YOUR CREW
+
+   The first screen asks for your crew's names and your first project.
+   Four ready-made projects (a space station, an album launch, a food
+   forest, a product launch) get you going in one click. Press ? on the
+   map at any time to see the keys.
+
+
+4. PHONES AND LAPTOPS ON THE SAME WI-FI
+
+   To let the rest of the crew join from their own phones or laptops,
+   double-click "Start Ko-Labz on Wi-Fi" instead. A window shows the
+   address to type on each phone, something like:
+
+       http://192.168.1.23:8350
+
+   The phones must be on the same Wi-Fi as this Mac. Every screen updates
+   live. The same addresses are listed inside Ko-Labz under Systems.
+
+   If your Mac asks whether "node" may accept incoming connections, click
+   Allow, or the phones cannot reach it.
+
+   Anyone on that Wi-Fi can play and edit, so use it at home, in the
+   studio or on another network you trust, not on cafe or hotel Wi-Fi.
+   To go back to this Mac only, restart the Mac and use "Start Ko-Labz".
+
+
+WHERE YOUR HUB IS SAVED
+
+   In a folder in your home folder called:
+
+       Ko-Labz Data
+
+   (In Finder: Go, Go to Folder, type  ~/Ko-Labz Data  and press Return.)
+
+   The whole hub is one file in there, hub.json, saved after every change.
+   Ko-Labz also keeps a copy every 10 minutes in the "backups" folder
+   inside it (the last 30).
+
+   Replacing the Ko-Labz folder with a newer version never touches it.
+   Deleting the Ko-Labz folder does not delete it either.
+
+
+BACK IT UP
+
+   The quickest way: in Ko-Labz, open Systems and press "Export hub". That
+   saves the whole hub as one file you can keep anywhere. "Import hub", in the
+   same place, brings it back (Ko-Labz keeps a copy of what it replaced).
+
+   Time Machine (System Settings, General, Time Machine) also includes
+   the Ko-Labz Data folder automatically.
+
+   To go back to one of the automatic copies: restart the Mac, open the
+   backups folder, copy the file you want next to hub.json, rename it to
+   hub.json (replacing the old one), then start Ko-Labz.
+
+
+STOP IT
+
+   Closing the browser tab is fine. Ko-Labz keeps running quietly in the
+   background until you log out or restart. Restarting the Mac stops it.
+
+
+HELP
+
+   If something goes wrong, the details are in:
+       ~/Library/Logs/Ko-Labz
+   Needs a Mac with macOS 12 (Monterey) or newer. Mac only for now.

@@ -24,19 +24,20 @@ the system goes supernova and the owner earns +20. Eight badges and six ranks
 
 ## Run it
 
-Needs [Node.js](https://nodejs.org) 20 or newer.
+Needs [Node.js](https://nodejs.org) 20 or newer. (The ready-made Mac download needs nothing installed; see [Ship it](#ship-it).)
 
 ```bash
 npm install
 npm start          # http://127.0.0.1:8350
 ```
 
-On a Mac you can instead double-click **Start Ko-Labz.command**, which starts the hub and
-opens it in Chrome. The first screen sets up the crew and the first project; four templates
+On a Mac you can instead double-click **Start Ko-Labz** (the app icon) or **Start Ko-Labz.command**,
+which start the hub and open it in your browser. The first screen sets up the crew and the first project; four templates
 (space station, album launch, food forest, product launch) get you going in a click.
 
 To let phones on the same Wi-Fi join, double-click **Start Ko-Labz on Wi-Fi.command**
-(or run `KOLABZ_HOST=0.0.0.0 npm start`). Every open screen updates live. Anyone on that
+(or run `KOLABZ_HOST=0.0.0.0 npm start`); its window shows the address to type on each
+phone. Every open screen updates live. Anyone on that
 network can play and edit, so use it on a network you trust.
 
 ## Play
@@ -78,12 +79,13 @@ No build step and no framework: plain ES modules, [three.js](https://threejs.org
 | `shared/rules.mjs` | the one rulebook: every action, points, badges, ranks, templates, save migration |
 | `public/scene.js` | the 3D: galaxy, star systems, shaders, effects, camera |
 | `public/app.js` | the HUD, console, panels and setup |
-| `data/hub.json` | the saved hub, written after every change; `data/backups/` every 10 minutes, last 30 kept |
+| `~/Ko-Labz Data/hub.json` | the saved hub, written after every change; `backups/` next to it every 10 minutes, last 30 kept. Outside the app folder, so replacing the folder never loses it. A copy that already has `./data/hub.json` keeps using that; `KOLABZ_DATA` overrides both |
 | `original/` | the single-file prototype this grew from |
 
 The server is the only thing that decides outcomes; the page sends actions and redraws
 whatever the server says. Ports: 8350 app, 8351 browser tests, 8352 unit tests.
-`GET /api/whoami` answers `app: ko-labz`, and the server exits with code 3 if its port is taken.
+`GET /api/whoami` answers `app: ko-labz` with its `root`, `data`, `pid`, `host` and `version`,
+and the server exits with code 3 if its port is taken.
 
 ## Tests
 
@@ -94,3 +96,56 @@ npm run check      # both
 ```
 
 The browser test needs Google Chrome installed (or `CHROME_PATH`).
+
+## Ship it
+
+    bash scripts/package.sh      # both Macs; "x64" or "arm64" for one
+
+makes, in `dist/`: `Ko-Labz (Intel Mac).zip` and `Ko-Labz (Apple Silicon).zip` (about
+48 MB each), `SHA256SUMS` and `install.sh`. Each zip carries Node v22.23.4 in
+`runtime/node` and the page's parts in `node_modules`, so a crew leader never needs Node,
+npm or the internet. `node_modules` is made fresh with `npm ci` from `package-lock.json`
+on the build Mac and trimmed to what the server serves (three's `build/` and
+`examples/jsm/`, the font files, each licence). It has no native code, so one copy serves
+both Macs; the script refuses if that ever changes. Files come from an allow list: no
+tests, docs, tools, the prototype, data, logs or git. The script refuses if a hub, a log
+or a path from the build Mac slips in. The version comes from `package.json`.
+
+Two ways to hand it out:
+
+- **The zip.** The crew leader unzips it, moves the folder to Applications and
+  double-clicks Start Ko-Labz. A browser marks downloads as "from the internet", so macOS
+  asks once about an unidentified developer; `READ ME FIRST.txt` says what to click
+  (right-click, Open on macOS 12 to 14; Privacy and Security, Open Anyway on 15). There
+  is no Apple developer signing; the icon is sealed ad hoc. Opened straight from
+  Downloads, macOS runs the icon from a temporary copy (App Translocation); the icon asks
+  macOS where the real folder is and carries on, and the launcher clears the quarantine
+  mark from the whole folder so it does not happen again.
+- **One line.** Host the three files at one address, put that address in the `BASE=`
+  line at the top of `install.sh` (or set `KOLABZ_BASE`), and the crew leader runs
+  `curl -fsSL <base>/install.sh | bash`. curl leaves no quarantine mark, so there is no
+  warning. It installs to `~/Applications/Ko-Labz`, refuses a download whose checksum
+  does not match, stops a running copy that is that install or serves `~/Ko-Labz Data`
+  (a copy with its own data folder is left alone), and starts it.
+
+The launch logic is `scripts/start-kolabz.sh`; `Start Ko-Labz.app`, `Start Ko-Labz.command`
+and `Start Ko-Labz on Wi-Fi.command` (`--wifi`) all run it. It asks the port's
+`/api/whoami` who is there before reusing anything, reuses its own server, restarts one
+that predates the server code or that is not listening on Wi-Fi when asked to, stops an
+older copy serving the same hub, and refuses another program or another copy with its own
+hub. Logs go to `~/Library/Logs/Ko-Labz`. It never runs npm: a folder without
+`node_modules` says to use the ready-made download. `scripts/setup.sh` finds Node 20 or
+newer (the bundled one first) or fetches the pinned v22.23.4 into `runtime/`, SHA-256
+checked; that needs about a minute online. Ko-Labz needs nothing newer than Node 20 (no
+`node:sqlite`). The app icon is drawn by `tools/make_icon.py`; after editing anything
+inside `Start Ko-Labz.app`, re-seal it with `codesign --force --deep -s - "Start Ko-Labz.app"`.
+
+Updating: replace the folder with the new one. The hub lives in `~/Ko-Labz Data`.
+
+Rehearsing a brand-new Mac: unzip into a scratch folder whose path has spaces, mark every
+file with `xattr -w com.apple.quarantine "0083;0;Chrome;"`, then run `Start Ko-Labz.command`
+with `env -i HOME=<empty folder> PATH=/usr/bin:/bin KOLABZ_LAUNCH_QUIET=1 KOLABZ_PORT=8351
+SETUP_FRESH=1`. Quiet mode opens no browser and shows no dialog (a failure is printed,
+exit 1); the port keeps it off the live 8350; fresh mode ignores every Node outside
+`runtime/`. Delete `runtime/` to rehearse the download, and add
+`https_proxy=http://127.0.0.1:9` to rehearse being offline.

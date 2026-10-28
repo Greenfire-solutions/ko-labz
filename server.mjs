@@ -1,5 +1,5 @@
 // Ko-Labz Persistence Hub server. Serves the 3D hub and keeps the one saved hub.
-// Port 8350 (8352 for tests). Identity: GET /api/whoami -> { app: "ko-labz" }.
+// Port 8350 (8352 for tests). Identity: GET /api/whoami -> { app: "ko-labz", root, data, pid, host, version }.
 // Set KOLABZ_HOST=0.0.0.0 to let the crew join from phones on the same Wi-Fi.
 import http from 'node:http';
 import fs from 'node:fs';
@@ -15,7 +15,12 @@ const FORGE = process.env.KOLABZ_FORGE_URL || 'http://127.0.0.1:8330';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.KOLABZ_PORT || 8350);
 const HOST = process.env.KOLABZ_HOST || '127.0.0.1';
-const DATA = path.resolve(process.env.KOLABZ_DATA || path.join(ROOT, 'data'));
+// The hub lives outside the app folder (~/Ko-Labz Data) so replacing the folder with a newer
+// version never touches it. A copy that already keeps its hub in ./data goes on using that.
+const DATA = path.resolve(process.env.KOLABZ_DATA || (fs.existsSync(path.join(ROOT, 'data', 'hub.json')) ? path.join(ROOT, 'data') : path.join(process.env.HOME || os.homedir(), 'Ko-Labz Data')));
+// Where the hub is saved, as the Systems panel shows it (home folder as ~, so a phone never sees a user name).
+const SHOWN_DATA = DATA.startsWith(os.homedir() + path.sep) ? '~' + DATA.slice(os.homedir().length) : DATA;
+const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 const HUB_FILE = path.join(DATA, 'hub.json');
 const BACKUPS = path.join(DATA, 'backups');
 const STARTED = Date.now();
@@ -140,9 +145,9 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
   try {
-    if (p === '/api/whoami') return send(res, 200, { app: 'ko-labz', root: ROOT, data: DATA, pid: process.pid, startedAt: STARTED });
+    if (p === '/api/whoami') return send(res, 200, { app: 'ko-labz', root: ROOT, data: DATA, pid: process.pid, startedAt: STARTED, port: PORT, host: HOST, version: VERSION });
     if (p === '/api/health') return send(res, 200, { ok: true, app: 'ko-labz', version: hub.version, players: hub.players.length, projects: hub.projects.length });
-    if (p === '/api/state' && req.method === 'GET') return send(res, 200, { hub, templates: TEMPLATES, lan: HOST === '0.0.0.0' ? lanAddresses().map(a => `http://${a}:${PORT}`) : [] });
+    if (p === '/api/state' && req.method === 'GET') return send(res, 200, { hub, templates: TEMPLATES, lan: HOST === '0.0.0.0' ? lanAddresses().map(a => `http://${a}:${PORT}`) : [], dataDir: SHOWN_DATA });
 
     if (p === '/api/events' && req.method === 'GET') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });

@@ -6,7 +6,11 @@
 - Every write goes through `runAction()` in `server.mjs`, which saves and broadcasts on `/api/events`.
   The client ignores any hub whose `version` is not newer, so events are handled once.
 - Ports: 8350 live, 8351 sandbox and page proofs (use a scratch `KOLABZ_DATA`), 8352 `npm test`.
-  Never point a test at 8350 or at `data/`.
+  Never point a test at 8350, at `data/` or at `~/Ko-Labz Data`. The hub defaults to `~/Ko-Labz Data`;
+  a copy with `./data/hub.json` (this dev folder) keeps using that.
+- Shipping: `scripts/package.sh` builds the per-Mac zips (Node + trimmed node_modules inside), the
+  launch logic is `scripts/start-kolabz.sh` (never runs npm), the rehearsal recipe is in README "Ship it".
+  Editing anything inside `Start Ko-Labz.app` needs a re-seal (`codesign --force --deep -s -`).
 - Avatar bridge: `normalizeAvatar()` keeps a summary only. Never store birth data or charts from the Forge.
   The Forge is probed by `/api/whoami` (`civilx-avatar-builder`) before it is trusted.
 - `npm run e2e` (test/e2e.mjs) drives the real page in headless Chrome on 8351 with a temp data folder:

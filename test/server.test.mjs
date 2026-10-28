@@ -32,6 +32,11 @@ test('whoami identifies the app and its data folder', async () => {
   const j = await (await fetch(`${BASE}/api/whoami`)).json();
   assert.equal(j.app, 'ko-labz');
   assert.equal(j.data, DATA);
+  // The launcher and installer read these to know the server is this copy, and how it listens.
+  assert.equal(j.root, fs.realpathSync(ROOT));
+  assert.equal(typeof j.pid, 'number');
+  assert.equal(j.host, '127.0.0.1');
+  assert.equal(j.version, JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version);
 });
 
 test('page, app code, three.js, addons and fonts are served', async () => {
@@ -107,4 +112,41 @@ test('a second server on the same port exits with code 3', async () => {
   const p2 = spawn(process.execPath, ['server.mjs'], { cwd: ROOT, env: { ...process.env, KOLABZ_PORT: String(PORT), KOLABZ_DATA: DATA }, stdio: 'pipe' });
   const code = await new Promise(r => p2.once('exit', r));
   assert.equal(code, 3);
+});
+
+// A downloaded copy keeps its hub in ~/Ko-Labz Data, outside the app folder, so replacing the folder
+// never loses it; a copy that already has ./data/hub.json keeps using that. Run in a scratch copy of
+// the server with a scratch HOME, never against this folder (its ./data may be someone's real hub).
+test('the hub defaults to ~/Ko-Labz Data, and an in-folder ./data/hub.json keeps working', async () => {
+  proc.kill(); await new Promise(r => proc.once('exit', r));
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'kolabz-datadir-'));
+  const app = path.join(scratch, 'Ko-Labz'), home = path.join(scratch, 'home');
+  fs.mkdirSync(home);
+  for (const f of ['server.mjs', 'package.json', 'shared']) fs.cpSync(path.join(ROOT, f), path.join(app, f), { recursive: true });
+  const env = { ...process.env, KOLABZ_PORT: String(PORT), HOME: home };
+  delete env.KOLABZ_DATA;
+  const ask = async (want) => {
+    for (let i = 0; i < 50; i++) {
+      try { const w = await (await fetch(`${BASE}/api/whoami`)).json(); if (w.app === 'ko-labz' && w.data === want) return (await (await fetch(`${BASE}/api/state`)).json()); } catch {}
+      await new Promise(r => setTimeout(r, 100));
+    }
+    throw new Error(`no server with data ${want}`);
+  };
+  try {
+    proc = spawn(process.execPath, ['server.mjs'], { cwd: app, env, stdio: 'pipe' });
+    let st = await ask(path.join(home, 'Ko-Labz Data'));
+    assert.equal(st.dataDir, '~/Ko-Labz Data');
+    assert.ok(fs.existsSync(path.join(home, 'Ko-Labz Data', 'backups')));
+    assert.ok(!fs.existsSync(path.join(app, 'data')));
+    proc.kill(); await new Promise(r => proc.once('exit', r));
+
+    fs.mkdirSync(path.join(app, 'data'));
+    fs.writeFileSync(path.join(app, 'data', 'hub.json'), JSON.stringify({ players: [{ name: 'Kept' }], projects: [] }));
+    proc = spawn(process.execPath, ['server.mjs'], { cwd: app, env, stdio: 'pipe' });
+    st = await ask(path.join(fs.realpathSync(app), 'data'));
+    assert.equal(st.hub.players[0].name, 'Kept');
+  } finally {
+    proc.kill(); await new Promise(r => proc.once('exit', r));
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
 });

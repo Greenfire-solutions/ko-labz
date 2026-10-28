@@ -22,6 +22,7 @@ setSound(prefs.sound);
 let hub = null;
 let templates = [];
 let lan = [];
+let dataDir = '';
 const ui = { view: 'galaxy', projectId: null, focusId: null, sel: null, action: null };
 window.__kolabzUi = ui; // read-only view state for the browser tests
 let drawerState = null;
@@ -110,7 +111,7 @@ async function boot() {
   try {
     const res = await fetch('/api/state');
     const data = await res.json();
-    templates = data.templates || []; lan = data.lan || [];
+    templates = data.templates || []; lan = data.lan || []; dataDir = data.dataDir || '';
     applyHub(data.hub);
   } catch {
     $('boot-line').textContent = 'HUB OFFLINE. START KO-LABZ AND RELOAD.';
@@ -642,10 +643,10 @@ function drawSettings() {
     </div>
     <div class="d-section"><div class="d-title">Join from other devices</div>
       ${lan.length ? `<div class="d-note">Anyone on this Wi-Fi can open:</div>${lan.map(u => `<div class="d-row"><a href="${esc(u)}" target="_blank">${esc(u)}</a></div>`).join('')}`
-        : '<div class="d-note">Right now only this Mac can open the hub. Double-click <b>Start Ko-Labz on Wi-Fi.command</b> in the Ko-Labz folder and phones on the same Wi-Fi can join with the address it shows. Every screen updates live.</div>'}
+        : '<div class="d-note">Right now only this Mac can open the hub. Double-click <b>Start Ko-Labz on Wi-Fi</b> in the Ko-Labz folder and phones on the same Wi-Fi can join with the address it shows. Every screen updates live.</div>'}
     </div>
     <div class="d-section"><div class="d-title">Data</div>
-      <div class="d-note">Everything is saved on this Mac in <b>Ko-Labz/data/hub.json</b> after every change, with a backup every 10 minutes (the last 30 are kept).</div>
+      <div class="d-note">Everything is saved on this Mac in <b>${esc((dataDir || '~/Ko-Labz Data') + '/hub.json')}</b> after every change, with a backup every 10 minutes (the last 30 are kept).</div>
       <div class="d-row"><a class="btn sm" href="/api/export" download>Export hub</a><label class="btn sm" style="cursor:pointer">Import hub<input type="file" id="import-file" accept="application/json,.json" hidden></label></div>
     </div>
     <div class="d-section"><div class="d-title red">Danger</div>
