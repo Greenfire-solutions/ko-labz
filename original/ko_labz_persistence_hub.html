@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ko-Labz | Persistence Hub</title>
+    <style>
+        /* --- SCI-FI DESIGN SYSTEM VARIABLES --- */
+        :root {
+            --primary-cyan: #00d4ff;
+            --primary-violet: #9944ff;
+            --warning-red: #ff4444;
+            --panel-bg: rgba(2, 6, 12, 0.9);
+            --panel-bg-solid: #02060c;
+            --border-glow: rgba(0, 212, 255, 0.4);
+            --border-dim: rgba(0, 212, 255, 0.2);
+            --text-main: #f0f4f8;
+            --text-dim: #708090;
+            --ui-font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --hex-grid: repeating-linear-gradient(60deg, rgba(0, 212, 255, 0.02) 0px, rgba(0, 212, 255, 0.02) 1px, transparent 1px, transparent 20px);
+            --bevel-edge: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.4) 100%);
+            
+            /* Unified Spacing System */
+            --space-1: 8px;
+            --space-2: 12px;
+            --space-3: 16px;
+            --space-4: 24px;
+            --space-5: 32px;
+            --safe-top: calc(var(--space-4) + env(safe-area-inset-top));
+            --safe-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+
+            /* Standardized Radii */
+            --radius-1: 2px;
+            --radius-2: 6px;
+            --radius-3: 10px;
+        }
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--ui-font);
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #010204;
+            color: var(--text-main);
+        }
+
+        /* Scanline Overlay */
+        body::after {
+            content: " ";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.08) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.01), rgba(0, 255, 0, 0.005), rgba(0, 0, 255, 0.01));
+            background-size: 100% 2px, 2px 100%;
+            z-index: 99;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+            cursor: grab;
+        }
+        #canvas-container:active { cursor: grabbing; }
+
+        /* UI Layering */
+        .ui-layer {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .ui-layer * { pointer-events: auto; }
+
+        /* --- TIGHT HUD PANELS --- */
+        .hud-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border-dim);
+            box-shadow: inset 0 0 15px rgba(0, 212, 255, 0.05), 0 10px 40px rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-2);
+        }
+        .hud-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-cyan), transparent);
+            opacity: 0.5;
+            z-index: 2;
+        }
+
+        /* Top Left: Title & Turn */
+        .top-left { top: var(--safe-top); left: var(--space-5); }
+        .top-left h1 {
+            font-size: 1.4rem;
+            font-weight: 200;
+            letter-spacing: 10px;
+            text-transform: uppercase;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 12px var(--primary-cyan);
+            margin-bottom: var(--space-1);
+        }
+        .turn-display {
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            background: rgba(0, 212, 255, 0.1);
+            padding: 8px 18px;
+            border-left: 4px solid var(--primary-cyan);
+            display: inline-block;
+            clip-path: polygon(0 0, 85% 0, 100% 100%, 0% 100%);
+        }
+
+        /* Top Center: Project */
+        .top-center { top: 25px; left: 50%; transform: translateX(-50%); width: clamp(320px, 35vw, 460px); }
+        .project-card {
+            text-align: center;
+            padding: 10px 25px;
+            border-top: 2px solid var(--primary-cyan);
+            clip-path: polygon(5% 0%, 95% 0%, 100% 100%, 0% 100%);
+        }
+        .project-card p {
+            font-size: 0.55rem;
+            color: var(--primary-cyan);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 2px;
+            opacity: 0.8;
+        }
+        .project-card h2 {
+            font-size: 0.9rem;
+            color: #fff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        /* Top Right: Scoreboard */
+        .top-right { top: 30px; right: 30px; }
+        .scoreboard {
+            min-width: 240px;
+            padding: 18px;
+            border-radius: var(--radius-2);
+        }
+        .scoreboard h3 {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 15px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 8px;
+        }
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            font-size: 0.75rem;
+            padding: 8px 12px;
+            transition: 0.3s;
+            opacity: 0.5;
+            border-radius: var(--radius-1);
+        }
+        .player-row.active-player {
+            opacity: 1;
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.15), transparent);
+            border-left: 2px solid var(--primary-cyan);
+            color: #fff;
+        }
+        .color-dot { width: 5px; height: 5px; border-radius: 50%; margin-right: 12px; box-shadow: 0 0 8px currentColor; }
+        .player-score { font-weight: 800; font-family: monospace; color: var(--primary-cyan); font-size: 0.85rem; }
+
+        /* Activity Log - Stacked beneath top-left controls */
+        .bottom-left { 
+            top: calc(var(--safe-top) + 110px); 
+            left: var(--space-5); 
+            bottom: auto; 
+            width: 280px; 
+        }
+        .recap-panel { padding: 12px 16px; border-radius: var(--radius-2); border-bottom: 2px solid var(--primary-cyan); max-height: 160px; }
+        .recap-panel h4 { font-size: 0.5rem; text-transform: uppercase; color: var(--primary-cyan); letter-spacing: 3px; margin-bottom: 8px; }
+        .recap-content { font-size: 0.65rem; line-height: 1.5; color: var(--text-dim); }
+        .assist-log { margin-bottom: 6px; border-bottom: 1px solid rgba(0, 212, 255, 0.05); padding-bottom: 6px; }
+
+        /* --- COMMAND HUD - REFINED GEOMETRY --- */
+        .bottom-center {
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0px;
+        }
+
+        .hud-side-group { display: flex; flex-direction: column; gap: 8px; }
+
+        .hud-button {
+            width: 240px; 
+            height: 42px;
+            background: linear-gradient(90deg, #101c2b 0%, #050a12 100%);
+            border: 1px solid rgba(0, 212, 255, 0.4);
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            clip-path: polygon(0 0, 92% 0, 100% 50%, 92% 100%, 0 100%);
+            padding: 0 35px 0 15px;
+            outline: none;
+            box-shadow: inset 0 0 10px rgba(0, 212, 255, 0.1);
+        }
+        .hud-button.right {
+            clip-path: polygon(8% 0, 100% 0, 100% 100%, 8% 100%, 0 50%);
+            justify-content: flex-end;
+            padding: 0 15px 0 35px;
+            background: linear-gradient(-90deg, #101c2b 0%, #050a12 100%);
+        }
+
+        /* Visual Connectors */
+        .hud-button::before {
+            content: ''; position: absolute; left: 0; top: 0; width: 3px; height: 100%;
+            background: var(--primary-cyan); box-shadow: 0 0 10px var(--primary-cyan);
+        }
+        .hud-button.right::before { left: auto; right: 0; }
+        
+        .hud-button::after {
+            content: '◂'; font-size: 0.8rem; color: var(--primary-cyan); position: absolute; left: 8px;
+            animation: flicker 4s infinite;
+        }
+        .hud-button.right::after { content: '▸'; left: auto; right: 8px; }
+
+        .hud-button:hover {
+            border-color: var(--primary-cyan);
+            transform: translateX(4px);
+            background: linear-gradient(90deg, #1a2f47 0%, #050a12 100%);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+        .hud-button.right:hover { transform: translateX(-4px); }
+
+        .hud-button:disabled { opacity: 0.1; cursor: default; filter: grayscale(1); }
+
+        .hud-button-text {
+            font-size: 0.6rem;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+        }
+
+        .hexagon-container {
+            width: 440px; 
+            height: 220px; 
+            margin: 0 -32px; 
+            position: relative;
+            z-index: 2;
+            clip-path: polygon(15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%, 0% 50%);
+            border: 2px solid var(--primary-cyan);
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 1), 0 0 40px rgba(0, 212, 255, 0.15), inset 0 0 40px rgba(0, 212, 255, 0.1);
+        }
+
+        .hexagon-inner {
+            width: calc(100% - 12px); height: calc(100% - 12px);
+            background: #000;
+            background-image: var(--hex-grid);
+            clip-path: polygon(15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%, 0% 50%);
+            padding: 20px 80px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 1px solid rgba(0, 212, 255, 0.35);
+            position: relative;
+        }
+
+        /* Views Inside Hexagon */
+        .hud-view { display: none; flex-direction: column; align-items: center; width: 100%; }
+        .hud-view.active { display: flex; animation: hexEntry 0.5s cubic-bezier(0.19, 1, 0.22, 1); }
+
+        @keyframes hexEntry {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .hud-title { font-size: 0.95rem; color: #fff; margin-bottom: 6px; font-weight: 200; letter-spacing: 5px; text-transform: uppercase; }
+        .hud-ring-tag {
+            font-size: 0.45rem; text-transform: uppercase; letter-spacing: 3px;
+            background: rgba(0, 212, 255, 0.05); border: 1px solid var(--primary-cyan);
+            color: var(--primary-cyan); padding: 3px 12px; margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.15);
+            border-radius: var(--radius-1);
+        }
+        .hud-desc { font-size: 0.7rem; color: #b0c4de; line-height: 1.5; max-width: 320px; margin-bottom: 10px; text-align: center; }
+        .hud-action-hint { animation: flicker 2.5s infinite; font-size: 0.4rem; letter-spacing: 8px; color: var(--primary-cyan); margin-top: 10px; opacity: 0.6; }
+
+        /* Hex Forms */
+        .hex-form { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .hex-input {
+            width: 280px; background: rgba(0, 15, 30, 0.95); border: 1px solid rgba(0, 212, 255, 0.4);
+            padding: 10px; color: #fff; font-size: 0.7rem; outline: none; transition: 0.2s;
+            border-radius: var(--radius-1);
+        }
+        .hex-input:focus { border-color: var(--primary-cyan); box-shadow: 0 0 15px rgba(0, 212, 255, 0.2); }
+        .hex-btn-row { display: flex; gap: 10px; width: 280px; margin-top: 4px; }
+        .hex-commit-btn {
+            flex: 2; background: var(--primary-cyan); color: #000; border: none; font-weight: 900;
+            padding: 10px; cursor: pointer; letter-spacing: 2px; font-size: 0.6rem; transition: 0.2s;
+            border-radius: var(--radius-1);
+        }
+        .hex-commit-btn:hover { background: #fff; box-shadow: 0 0 20px var(--primary-cyan); }
+        .hex-cancel-btn {
+            flex: 1; background: transparent; color: var(--warning-red); border: 1px solid var(--warning-red);
+            font-weight: 700; padding: 10px; cursor: pointer; font-size: 0.55rem;
+            border-radius: var(--radius-1);
+        }
+
+        /* Success Banner */
+        #success-banner {
+            position: fixed; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--panel-bg-solid); border: 1px solid var(--primary-cyan); color: #fff; padding: 60px 120px;
+            z-index: 200; display: none; flex-direction: column; align-items: center;
+            box-shadow: 0 0 150px rgba(0, 0, 0, 1), 0 0 40px rgba(0, 212, 255, 0.3);
+            animation: bannerReveal 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            border-radius: var(--radius-3);
+        }
+        #success-banner h1 { font-size: 2.2rem; font-weight: 100; margin-bottom: 10px; text-transform: uppercase; }
+
+        /* Utility Buttons */
+        .bottom-right { bottom: 25px; right: 30px; display: flex; gap: 10px; }
+        .small-btn {
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-dim);
+            font-size: 0.5rem; text-transform: uppercase; padding: 6px 12px; letter-spacing: 2px;
+            cursor: pointer; transition: 0.3s;
+            border-radius: var(--radius-1);
+        }
+        .small-btn:hover { color: #fff; border-color: var(--primary-cyan); }
+
+        /* --- SETUP OVERLAY (Fully Scrollable Modal Page) --- */
+        #setup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(1, 2, 5, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            display: none; 
+            justify-content: center;
+            align-items: flex-start; 
+            padding: var(--space-5) var(--space-4);
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .setup-container {
+            width: 100%;
+            max-width: 900px;
+            max-height: none; 
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+            margin: 0 auto;
+            padding-bottom: 100px; 
+        }
+
+        .setup-header { text-align: center; margin-bottom: var(--space-4); margin-top: 2vh; }
+        .setup-header h2 { font-size: 2.2rem; letter-spacing: 10px; text-transform: uppercase; color: var(--primary-cyan); font-weight: 200; }
+        .setup-section { padding: var(--space-4); border-radius: var(--radius-2); }
+        .setup-section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; color: var(--primary-cyan); margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+        .setup-section-title::after { content: ''; height: 1px; flex: 1; background: var(--border-dim); }
+        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+        .setup-input-group { display: flex; flex-direction: column; gap: var(--space-1); }
+        .setup-label { font-size: 0.65rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; font-weight: 600; }
+        .setup-input { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-dim); padding: var(--space-2); color: #fff; font-size: 0.85rem; outline: none; transition: 0.3s; border-radius: var(--radius-1); }
+        .setup-input.error { border-color: var(--warning-red); box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); }
+        .setup-input:focus { border-color: var(--primary-cyan); background: rgba(0, 212, 255, 0.05); }
+        .setup-row { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-2); margin-bottom: var(--space-2); }
+        .setup-footer { display: flex; justify-content: center; gap: var(--space-4); margin-top: var(--space-4); padding-bottom: var(--space-5); }
+        .setup-btn { padding: var(--space-2) var(--space-5); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s; border: 1px solid transparent; border-radius: var(--radius-1); }
+        #setup-play-btn { background: var(--primary-cyan); color: #000; }
+        #setup-play-btn:hover { box-shadow: 0 0 20px var(--primary-cyan); background: #fff; }
+        #setup-cancel-btn { background: transparent; color: var(--warning-red); border-color: var(--warning-red); }
+        #setup-example-btn { background: transparent; color: var(--text-dim); border-color: var(--border-dim); }
+
+        /* --- PRE-FLIGHT UI POLISH --- */
+        .hud-panel {
+            background-image: 
+                linear-gradient(to right, var(--primary-cyan) 1px, transparent 1px) 0 0,
+                linear-gradient(to bottom, var(--primary-cyan) 1px, transparent 1px) 0 0,
+                linear-gradient(to left, var(--primary-cyan) 1px, transparent 1px) 100% 0,
+                linear-gradient(to bottom, var(--primary-cyan) 1px, transparent 1px) 100% 0,
+                linear-gradient(to right, var(--primary-cyan) 1px, transparent 1px) 0 100%,
+                linear-gradient(to top, var(--primary-cyan) 1px, transparent 1px) 0 100%,
+                linear-gradient(to left, var(--primary-cyan) 1px, transparent 1px) 100% 100%,
+                linear-gradient(to top, var(--primary-cyan) 1px, transparent 1px) 100% 100%;
+            background-repeat: no-repeat;
+            background-size: 8px 8px;
+            background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%;
+        }
+
+        .hud-panel::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 40%);
+            pointer-events: none;
+            border-radius: inherit;
+            z-index: 1;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        @keyframes flicker { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        @keyframes bannerReveal { 0% { opacity: 0; scale: 0.8; letter-spacing: 0px; } 100% { opacity: 1; scale: 1; letter-spacing: 15px; } }
+
+        @media (max-height: 800px) {
+            .hexagon-container { scale: 0.8; margin-top: -40px; }
+            .bottom-center { bottom: 15px; }
+            .bottom-left { top: calc(var(--safe-top) + 90px); }
+        }
+        
+        @media (max-width: 1200px) {
+            .hud-button { width: 200px; }
+            .hexagon-container { width: 380px; }
+        }
+    </style>
+    <script type="importmap">
+        { "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.js" } }
+    </script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="success-banner" class="hud-panel">
+        <h1>PROJECT COMPLETE</h1>
+        <p style="letter-spacing: 5px; color: var(--primary-cyan); font-size: 0.7rem; font-weight: 800;">ALL MISSION PARAMETERS FULFILLED</p>
+    </div>
+
+    <!-- UI Overlay Top Zones -->
+    <div class="ui-layer top-left">
+        <h1>ko-Labz</h1>
+        <div id="turn-indicator" class="turn-display">AWAITING SYSTEM SYNC</div>
+    </div>
+
+    <div class="ui-layer top-center">
+        <div class="project-card hud-panel">
+            <p>PRIMARY DIRECTIVE</p>
+            <h2 id="project-title">SYSTEM INIT...</h2>
+        </div>
+    </div>
+
+    <div class="ui-layer top-right">
+        <div class="scoreboard hud-panel">
+            <h3>LOGISTICS STATUS</h3>
+            <div id="scoreboard-list"></div>
+        </div>
+    </div>
+
+    <!-- Activity HUD - Integrated beneath top-left stack -->
+    <div class="ui-layer bottom-left">
+        <div class="recap-panel hud-panel">
+            <h4>ACTIVITY STREAM</h4>
+            <div id="turn-recap" class="recap-content">Monitoring orbital sectors...</div>
+        </div>
+    </div>
+
+    <div class="ui-layer bottom-center">
+        <div class="hud-side-group">
+            <button class="hud-button" id="btn-self">
+                <span class="hud-button-text">Fulfill Directly</span>
+            </button>
+            <button class="hud-button" id="btn-contact">
+                <span class="hud-button-text">Source Connection</span>
+            </button>
+        </div>
+
+        <div class="hexagon-container">
+            <div class="hexagon-inner">
+                <!-- INTEL VIEW -->
+                <div id="view-intel" class="hud-view active">
+                    <div id="held-ring" class="hud-ring-tag">SCANNING SECTOR</div>
+                    <h3 id="held-title" class="hud-title">Select Module</h3>
+                    <p id="held-desc" class="hud-desc">Navigate the orbital array to inspect active mission requirements and fulfill resource project deficits.</p>
+                    <div class="hud-action-hint">SYSTEM READY</div>
+                </div>
+
+                <!-- ACTION VIEW -->
+                <div id="view-action" class="hud-view">
+                    <div id="form-type-tag" class="hud-ring-tag">INPUT DATA</div>
+                    <div class="hex-form">
+                        <div id="form-self" style="display:none">
+                            <input type="text" id="input-self" class="hex-input" placeholder="Proof Link / Technical Reference">
+                        </div>
+                        <div id="form-contact" style="display:none">
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="input-contact-name" class="hex-input" style="width:145px" placeholder="Source Name">
+                                <input type="text" id="input-contact-info" class="hex-input" style="width:145px" placeholder="Contact ID">
+                            </div>
+                        </div>
+                        <div id="form-suggestion" style="display:none">
+                            <textarea id="input-suggestion" class="hex-input" style="height:70px; width:280px; resize:none;" placeholder="Proposal brief..."></textarea>
+                        </div>
+                        <div class="hex-btn-row">
+                            <button class="hex-cancel-btn" id="hex-cancel">ABORT</button>
+                            <button class="hex-commit-btn" id="hex-commit">EXECUTE ASSIST</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-side-group">
+            <button class="hud-button right" id="btn-suggestion">
+                <span class="hud-button-text">Add Solution</span>
+            </button>
+            <button class="hud-button right" id="btn-next-turn">
+                <span class="hud-button-text">Cycle Turn</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Utility Zone -->
+    <div class="ui-layer bottom-right">
+        <button id="resume-game-btn" class="small-btn">Sync Data</button>
+        <button id="new-session-btn" class="small-btn" style="color: var(--warning-red); border-color: rgba(255,0,0,0.2);">Reset</button>
+    </div>
+
+    <!-- Setup Overlay (Fullscreen Form Page) -->
+    <div id="setup-overlay">
+        <div class="setup-container">
+            <div class="setup-header">
+                <h2>Mission Briefing</h2>
+                <p style="font-size: 0.6rem; color: var(--primary-cyan); letter-spacing: 6px; font-weight: 800;">OPERATIONAL CLEARANCE REQUIRED</p>
+            </div>
+
+            <div class="setup-section hud-panel">
+                <div class="setup-section-title">CORE PARAMETERS</div>
+                <div class="setup-grid">
+                    <div class="setup-input-group">
+                        <label class="setup-label">Command Operator</label>
+                        <input type="text" id="setup-player-name" class="setup-input" placeholder="Enter Identity">
+                    </div>
+                    <div class="setup-input-group">
+                        <label class="setup-label">Project Title</label>
+                        <input type="text" id="setup-project-title" class="setup-input" placeholder="Enter Mission Name">
+                    </div>
+                </div>
+                <div class="setup-input-group" style="margin-top: 15px;">
+                    <label class="setup-label">Strategic Vision</label>
+                    <textarea id="setup-project-vision" class="setup-input" style="height: 60px; resize: none;" placeholder="Establish long-term mission objectives..."></textarea>
+                </div>
+            </div>
+
+            <div class="setup-section hud-panel">
+                <div class="setup-section-title">Minor Ring Infrastructure (4 Modules)</div>
+                <div class="setup-row">
+                    <input type="text" id="setup-minor-title-1" class="setup-input" placeholder="Mod 01 Title">
+                    <input type="text" id="setup-minor-desc-1" class="setup-input" placeholder="Resource description...">
+                </div>
+                <div class="setup-row">
+                    <input type="text" id="setup-minor-title-2" class="setup-input" placeholder="Mod 02 Title">
+                    <input type="text" id="setup-minor-desc-2" class="setup-input" placeholder="Resource description...">
+                </div>
+                <div class="setup-row">
+                    <input type="text" id="setup-minor-title-3" class="setup-input" placeholder="Mod 03 Title">
+                    <input type="text" id="setup-minor-desc-3" class="setup-input" placeholder="Resource description...">
+                </div>
+                <div class="setup-row">
+                    <input type="text" id="setup-minor-title-4" class="setup-input" placeholder="Mod 04 Title">
+                    <input type="text" id="setup-minor-desc-4" class="setup-input" placeholder="Resource description...">
+                </div>
+            </div>
+
+            <div class="setup-section hud-panel">
+                <div class="setup-section-title" style="color: var(--primary-violet);">Major Ring Strategic (3 Modules)</div>
+                <div class="setup-row">
+                    <input type="text" id="setup-major-title-1" class="setup-input" placeholder="Strat 01 Title">
+                    <input type="text" id="setup-major-desc-1" class="setup-input" placeholder="Objective description...">
+                </div>
+                <div class="setup-row">
+                    <input type="text" id="setup-major-title-2" class="setup-input" placeholder="Strat 02 Title">
+                    <input type="text" id="setup-major-desc-2" class="setup-input" placeholder="Objective description...">
+                </div>
+                <div class="setup-row">
+                    <input type="text" id="setup-major-title-3" class="setup-input" placeholder="Strat 03 Title">
+                    <input type="text" id="setup-major-desc-3" class="setup-input" placeholder="Objective description...">
+                </div>
+            </div>
+
+            <div class="setup-footer">
+                <button id="setup-cancel-btn" class="setup-btn" style="background:transparent; color:var(--warning-red); border-color:var(--warning-red);">Abort</button>
+                <button id="setup-example-btn" class="setup-btn" style="background:transparent; color:var(--text-dim); border-color:var(--border-dim);">Load Template</button>
+                <button id="setup-play-btn" class="setup-btn" style="background:var(--primary-cyan); color:#000;">Initiate Mission</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // ========================================================
+        // 0. AUDIO SYSTEM
+        // ========================================================
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playBeep(freq = 440, duration = 0.1, type = 'sine', volume = 0.05) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+        function playSuccess() {
+            [440, 554.37, 659.25].forEach((f, i) => { setTimeout(() => playBeep(f, 0.4, 'triangle', 0.1), i * 100); });
+        }
+
+        // ========================================================
+        // 1. DATA MODEL & PERSISTENCE
+        // ========================================================
+        const STORAGE_KEY = "koLabz_orbital_state_v1";
+        const DEFAULT_GAME_DATA = {
+            turnInfo: { currentPlayerIndex: 0, turnNumber: 1 },
+            players: [
+                { id: 1, name: 'ALICE', color: '#ff4444', score: 0 },
+                { id: 2, name: 'BOB', color: '#00d4ff', score: 0 },
+                { id: 3, name: 'CHARLIE', color: '#44ff44', score: 0 },
+                { id: 4, name: 'DIANA', color: '#9944ff', score: 0 }
+            ],
+            activeProject: { title: "LUNAR GATEWAY HUB", ownerId: 1, vision: "" },
+            needs: [
+                { id: 'm1', ring: 'minor', title: 'Power Cells', description: 'Install high-density ionic storage arrays.', status: 'active' },
+                { id: 'm2', ring: 'minor', title: 'Data Relay', description: 'Establish low-latency laser link network.', status: 'active' },
+                { id: 'm3', ring: 'minor', title: 'Shielding', description: 'Deploy magnetic radiation shielding.', status: 'active' },
+                { id: 'm4', ring: 'minor', title: 'Cooling Loop', description: 'Regulate internal thermal exhaust.', status: 'active' },
+                { id: 'M1', ring: 'major', title: 'Life Support', description: 'Calibrate O2 scrubbers and algae-based filtration.', status: 'active' },
+                { id: 'M2', ring: 'major', title: 'Engine Array', description: 'Assemble fusion propulsion blocks.', status: 'active' },
+                { id: 'M3', ring: 'major', title: 'Habitat Pods', description: 'Finalize modular pressurized sections.', status: 'active' }
+            ],
+            assists: [],
+            heldNeedId: null,
+            isMinorComplete: false,
+            isMajorComplete: false,
+            isProjectComplete: false
+        };
+
+        let gameData = JSON.parse(JSON.stringify(DEFAULT_GAME_DATA));
+        function saveGame() { localStorage.setItem(STORAGE_KEY, JSON.stringify(gameData)); }
+        function loadGame() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    gameData = Object.assign(gameData, JSON.parse(saved));
+                    syncVisualsFromData();
+                    updateUI();
+                    return true;
+                } catch (e) { console.error(e); }
+            }
+            return false;
+        }
+        function resetSession() { localStorage.removeItem(STORAGE_KEY); window.location.reload(); }
+
+        // ========================================================
+        // 2. STATE & UI
+        // ========================================================
+        let currentActionType = null;
+        let systemRotationY = 0;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lockedNeedId = null;
+        let intelMode = 'need'; // 'need' | 'project'
+
+        const DEFAULT_CAM_POS = new THREE.Vector3(0, 16, 14);
+        const DEFAULT_LOOK_AT = new THREE.Vector3(0, -1, 0);
+        const desiredCamPos = new THREE.Vector3().copy(DEFAULT_CAM_POS);
+        const desiredLookAt = new THREE.Vector3().copy(DEFAULT_LOOK_AT);
+        const currentLookAt = new THREE.Vector3().copy(DEFAULT_LOOK_AT);
+
+        function updateUI() {
+            const currentP = gameData.players[gameData.turnInfo.currentPlayerIndex];
+            document.getElementById('turn-indicator').textContent = `T${gameData.turnInfo.turnNumber} // ${currentP.name}`;
+            document.getElementById('project-title').textContent = gameData.activeProject.title;
+
+            const scoreList = document.getElementById('scoreboard-list');
+            scoreList.innerHTML = '';
+            [...gameData.players].sort((a,b) => b.score - a.score).forEach(p => {
+                const isActive = p.id === currentP.id;
+                scoreList.innerHTML += `<div class="player-row ${isActive ? 'active-player' : ''}"><div class="player-name-group"><div class="color-dot" style="color:${p.color}; background-color: ${p.color}"></div><span>${p.name}</span></div><span class="player-score">${p.score}</span></div>`;
+            });
+
+            const recap = document.getElementById('turn-recap');
+            recap.innerHTML = gameData.assists.length ? '' : '<div class="assist-log">System state nominal. Monitoring orbital sectors.</div>';
+            gameData.assists.slice(-4).reverse().forEach(a => {
+                recap.innerHTML += `<div class="assist-log"><b>${a.playerName}</b> aided <b>${a.ownerName}</b>: <b>${a.needTitle}</b> (+${a.points})</div>`;
+            });
+
+            if (intelMode === 'project') {
+                document.getElementById('held-ring').textContent = "PROJECT CORE";
+                document.getElementById('held-title').textContent = gameData.activeProject.title;
+                document.getElementById('held-desc').textContent = gameData.activeProject.vision || "Primary mission directive established.";
+                document.getElementById('held-ring').style.color = 'var(--primary-cyan)';
+                document.getElementById('held-ring').style.borderColor = 'var(--primary-cyan)';
+                
+                ['btn-self', 'btn-contact', 'btn-suggestion'].forEach(id => {
+                    document.getElementById(id).disabled = true;
+                });
+            } else {
+                const need = gameData.needs.find(n => n.id === gameData.heldNeedId);
+                if (need) {
+                    document.getElementById('held-title').textContent = need.title;
+                    document.getElementById('held-desc').textContent = need.description;
+                    document.getElementById('held-ring').textContent = `${need.ring} Sector`;
+                    const ringCol = need.ring === 'minor' ? '#00d4ff' : '#9944ff';
+                    document.getElementById('held-ring').style.color = ringCol;
+                    document.getElementById('held-ring').style.borderColor = ringCol;
+                    
+                    const isFulfilled = need.status === 'fulfilled';
+                    ['btn-self', 'btn-contact', 'btn-suggestion'].forEach(id => {
+                        document.getElementById(id).disabled = isFulfilled;
+                    });
+                }
+            }
+            
+            checkProgress();
+            const saved = localStorage.getItem(STORAGE_KEY);
+            document.getElementById('resume-game-btn').disabled = !saved;
+        }
+
+        function checkProgress() {
+            const minorTotal = gameData.needs.filter(n => n.ring === 'minor').length;
+            const minorDone = gameData.needs.filter(n => n.ring === 'minor' && n.status === 'fulfilled').length;
+            const majorTotal = gameData.needs.filter(n => n.ring === 'major').length;
+            const majorDone = gameData.needs.filter(n => n.ring === 'major' && n.status === 'fulfilled').length;
+            const minorPerc = minorDone / minorTotal;
+            const majorPerc = majorDone / majorTotal;
+
+            updateRingArc('minor', minorPerc);
+            updateRingArc('major', majorPerc);
+
+            if (minorPerc === 1 && !gameData.isMinorComplete) { gameData.isMinorComplete = true; playSuccess(); pulseRing('minor'); }
+            if (majorPerc === 1 && !gameData.isMajorComplete) { gameData.isMajorComplete = true; playSuccess(); pulseRing('major'); }
+            if (minorPerc === 1 && majorPerc === 1 && !gameData.isProjectComplete) { gameData.isProjectComplete = true; triggerProjectComplete(); }
+        }
+
+        function triggerProjectComplete() {
+            document.getElementById('success-banner').style.display = 'flex';
+            sun.material.emissiveIntensity = 10;
+            sun.material.color.set(0xffffff);
+            playSuccess();
+        }
+
+        // ========================================================
+        // 3. THREE.JS ENGINE
+        // ========================================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x010204);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.copy(DEFAULT_CAM_POS);
+        camera.lookAt(DEFAULT_LOOK_AT);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+        const sunLight = new THREE.PointLight(0xffffff, 5, 80);
+        sunLight.position.set(0, 5, 0); scene.add(sunLight);
+
+        const systemGroup = new THREE.Group();
+        scene.add(systemGroup);
+
+        const sun = new THREE.Mesh(
+            new THREE.SphereGeometry(2, 32, 32), 
+            new THREE.MeshStandardMaterial({ color: 0xffcc33, emissive: 0xffaa00, emissiveIntensity: 1 })
+        );
+        systemGroup.add(sun);
+
+        const minorRadius = 6, majorRadius = 10;
+        [minorRadius, majorRadius].forEach(r => {
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.012, 16, 128), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+            ring.rotation.x = Math.PI / 2; systemGroup.add(ring);
+        });
+
+        const minorProgressMesh = new THREE.Mesh(
+            new THREE.TorusGeometry(minorRadius, 0.05, 16, 128, 0.01),
+            new THREE.MeshStandardMaterial({ color: 0x00d4ff, emissive: 0x00d4ff, emissiveIntensity: 2 })
+        );
+        minorProgressMesh.rotation.x = Math.PI / 2; systemGroup.add(minorProgressMesh);
+
+        const majorProgressMesh = new THREE.Mesh(
+            new THREE.TorusGeometry(majorRadius, 0.05, 16, 128, 0.01),
+            new THREE.MeshStandardMaterial({ color: 0x9944ff, emissive: 0x9944ff, emissiveIntensity: 2 })
+        );
+        majorProgressMesh.rotation.x = Math.PI / 2; systemGroup.add(majorProgressMesh);
+
+        const planetMeshes = [];
+
+        function rebuildPlanetsFromNeeds() {
+            planetMeshes.forEach(m => systemGroup.remove(m));
+            planetMeshes.length = 0;
+
+            gameData.needs.forEach((need, index) => {
+                const r = need.ring === 'minor' ? minorRadius : majorRadius;
+                const size = need.ring === 'minor' ? 0.35 : 0.55;
+                let col = need.ring === 'minor' ? 0x00d4ff : 0x9944ff;
+                const mesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(size, 32, 32),
+                    new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.4, metalness: 0.8, roughness: 0.2 })
+                );
+                
+                const ringCount = gameData.needs.filter(n => n.ring === need.ring).length;
+                const ringIndex = gameData.needs.filter((n, i) => n.ring === need.ring && i < index).length;
+                mesh.userData = { needId: need.id, angle: (ringIndex * (Math.PI * 2 / ringCount)), radius: r, orbitSpeed: 0.0008, originalScale: size };
+                systemGroup.add(mesh);
+                planetMeshes.push(mesh);
+            });
+            
+            syncVisualsFromData();
+            
+            lockedNeedId = null;
+            gameData.heldNeedId = null;
+            intelMode = 'need';
+        }
+
+        function createPlanets() {
+            rebuildPlanetsFromNeeds();
+        }
+
+        function syncVisualsFromData() {
+            gameData.needs.forEach(need => {
+                const mesh = planetMeshes.find(m => m.userData.needId === need.id);
+                if (mesh) {
+                    if (need.status === 'fulfilled') {
+                        mesh.material.color.set(0xffffff); mesh.material.emissive.set(0xffffff); mesh.material.emissiveIntensity = 1.2;
+                    } else {
+                        const col = need.ring === 'minor' ? 0x00d4ff : 0x9944ff;
+                        mesh.material.color.set(col); mesh.material.emissive.set(col); mesh.material.emissiveIntensity = 0.4;
+                    }
+                }
+            });
+            if (gameData.isProjectComplete) triggerProjectComplete();
+        }
+
+        function updateRingArc(type, progress) {
+            const mesh = type === 'minor' ? minorProgressMesh : majorProgressMesh;
+            const radius = type === 'minor' ? minorRadius : majorRadius;
+            mesh.geometry.dispose();
+            mesh.geometry = new THREE.TorusGeometry(radius, 0.05, 16, 128, Math.max(0.01, progress * Math.PI * 2));
+            mesh.visible = progress >= 0;
+        }
+
+        function pulseRing(type) {
+            const mesh = type === 'minor' ? minorProgressMesh : majorProgressMesh;
+            let count = 0;
+            const interval = setInterval(() => {
+                const s = 1 + Math.sin(count) * 0.12;
+                mesh.scale.set(s, s, s); mesh.material.emissiveIntensity = 3 + Math.sin(count) * 2;
+                count += 0.25;
+                if (count > Math.PI * 4) { clearInterval(interval); mesh.scale.set(1, 1, 1); mesh.material.emissiveIntensity = 2; }
+            }, 30);
+        }
+
+        const activeParticles = [];
+        function spawnBurst(position, color) {
+            const particleCount = 30;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const velocities = [];
+            for(let i=0; i<particleCount; i++) {
+                positions[i*3] = position.x; positions[i*3+1] = position.y; positions[i*3+2] = position.z;
+                velocities.push(new THREE.Vector3((Math.random()-0.5)*0.2, (Math.random()-0.5)*0.2, (Math.random()-0.5)*0.2));
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({ color: color, size: 0.15, transparent: true, blending: THREE.AdditiveBlending });
+            const points = new THREE.Points(geometry, material);
+            scene.add(points);
+            activeParticles.push({ points, velocities, life: 1.0 });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            systemGroup.rotation.y = THREE.MathUtils.lerp(systemGroup.rotation.y, systemRotationY, 0.1);
+            
+            planetMeshes.forEach(mesh => {
+                const d = mesh.userData; d.angle += d.orbitSpeed;
+                mesh.position.x = Math.cos(d.angle) * d.radius;
+                mesh.position.z = Math.sin(d.angle) * d.radius;
+                const targetScale = (gameData.heldNeedId === d.needId) ? 1.5 : 1.0;
+                const s = d.originalScale * targetScale;
+                mesh.scale.set(THREE.MathUtils.lerp(mesh.scale.x, s, 0.1), THREE.MathUtils.lerp(mesh.scale.y, s, 0.1), THREE.MathUtils.lerp(mesh.scale.z, s, 0.1));
+            });
+
+            if (lockedNeedId !== null) {
+                const mesh = planetMeshes.find(m => m.userData.needId === lockedNeedId);
+                if (mesh) {
+                    const targetPos = new THREE.Vector3();
+                    mesh.getWorldPosition(targetPos);
+                    desiredLookAt.copy(targetPos).y += 0.5;
+                    const camOffset = new THREE.Vector3(0, 6, 5); 
+                    desiredCamPos.copy(targetPos).add(camOffset);
+                }
+            } else if (intelMode === 'project') {
+                desiredLookAt.set(0, 0, 0);
+                desiredCamPos.set(0, 12, 10.5);
+            } else { desiredCamPos.copy(DEFAULT_CAM_POS); desiredLookAt.copy(DEFAULT_LOOK_AT); }
+
+            camera.position.lerp(desiredCamPos, 0.1);
+            currentLookAt.lerp(desiredLookAt, 0.1);
+            camera.lookAt(currentLookAt);
+
+            for (let i = activeParticles.length - 1; i >= 0; i--) {
+                const p = activeParticles[i]; p.life -= 0.02;
+                const pos = p.points.geometry.attributes.position.array;
+                for(let j=0; j<p.velocities.length; j++){ pos[j*3] += p.velocities[j].x; pos[j*3+1] += p.velocities[j].y; pos[j*3+2] += p.velocities[j].z; }
+                p.points.geometry.attributes.position.needsUpdate = true;
+                p.points.material.opacity = p.life;
+                if(p.life <= 0) { scene.remove(p.points); activeParticles.splice(i, 1); }
+            }
+
+            const pulse = (gameData.isProjectComplete ? 1.4 : 1) + Math.sin(Date.now() * 0.002) * 0.05;
+            sun.scale.setScalar(pulse);
+            renderer.render(scene, camera);
+        }
+
+        // ========================================================
+        // 4. INTERACTION & HUD LOGIC
+        // ========================================================
+        const container = document.getElementById('canvas-container');
+        container.addEventListener('wheel', (e) => systemRotationY += e.deltaY * 0.001);
+        container.addEventListener('mousedown', (e) => { isDragging = true; lastMouseX = e.clientX; });
+        window.addEventListener('mouseup', () => isDragging = false);
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            systemRotationY += (e.clientX - lastMouseX) * 0.005; lastMouseX = e.clientX;
+        });
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        container.addEventListener('pointerdown', (event) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObjects([...planetMeshes, sun]);
+            
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                if (hit === sun) {
+                    intelMode = 'project';
+                    lockedNeedId = null;
+                    gameData.heldNeedId = null;
+                    playBeep(660, 0.1, 'sine', 0.05);
+                    updateUI();
+                } else {
+                    intelMode = 'need';
+                    lockedNeedId = hit.userData.needId;
+                    gameData.heldNeedId = lockedNeedId;
+                    playBeep(880, 0.1, 'sine', 0.05);
+                    updateUI();
+                }
+            } else {
+                if (lockedNeedId !== null || intelMode === 'project') {
+                    lockedNeedId = null;
+                    gameData.heldNeedId = null; 
+                    intelMode = 'need';
+                    playBeep(220, 0.1, 'sine', 0.05);
+                    closeHexAction();
+                    updateUI();
+                }
+            }
+        });
+
+        function openHexAction(type) {
+            if (intelMode === 'project') return;
+            const need = gameData.needs.find(n => n.id === gameData.heldNeedId);
+            if (!need || need.status === 'fulfilled') return;
+            playBeep(880, 0.1, 'sine', 0.05);
+            currentActionType = type;
+            document.getElementById('view-intel').classList.remove('active');
+            document.getElementById('view-action').classList.add('active');
+            const modeTag = type === 'self' ? 'DIRECT ASSIST' : (type === 'contact' ? 'SOURCE CONNECTION' : 'LEAD PROPOSAL');
+            document.getElementById('form-type-tag').textContent = `MODE // ${modeTag}`;
+            ['form-self', 'form-contact', 'form-suggestion'].forEach(id => document.getElementById(id).style.display = 'none');
+            document.getElementById(`form-${type}`).style.display = 'block';
+        }
+
+        function closeHexAction() {
+            currentActionType = null;
+            document.getElementById('view-action').classList.remove('active');
+            document.getElementById('view-intel').classList.add('active');
+            document.querySelectorAll('.hex-input').forEach(i => i.value = '');
+        }
+
+        document.getElementById('btn-self').addEventListener('click', () => openHexAction('self'));
+        document.getElementById('btn-contact').addEventListener('click', () => openHexAction('contact'));
+        document.getElementById('btn-suggestion').addEventListener('click', () => openHexAction('suggestion'));
+        document.getElementById('hex-cancel').addEventListener('click', closeHexAction);
+
+        document.getElementById('hex-commit').addEventListener('click', () => {
+            if (!currentActionType || !gameData.heldNeedId) return;
+            const player = gameData.players[gameData.turnInfo.currentPlayerIndex];
+            const need = gameData.needs.find(n => n.id === gameData.heldNeedId);
+            const owner = gameData.players.find(p => p.id === gameData.activeProject.ownerId);
+            const base = need.ring === 'minor' ? 10 : 25;
+            const points = Math.round(base * { self: 1, contact: 0.7, suggestion: 0.4 }[currentActionType]);
+            const methodLabel = { self: 'fulfillment', contact: 'a contact', suggestion: 'a solution' }[currentActionType];
+            
+            need.status = 'fulfilled'; player.score += points;
+            gameData.assists.push({ playerName: player.name, ownerName: owner.name, needTitle: need.title, method: methodLabel, points: points });
+            const mesh = planetMeshes.find(m => m.userData.needId === need.id);
+            if (mesh) { 
+                mesh.material.color.set(0xffffff); mesh.material.emissive.set(0xffffff); mesh.material.emissiveIntensity = 1.2; 
+                spawnBurst(mesh.position.clone().applyMatrix4(systemGroup.matrixWorld), 0x00d4ff);
+            }
+            
+            playBeep(660, 0.2, 'triangle', 0.1);
+            saveGame();
+            closeHexAction();
+            updateUI();
+        });
+
+        document.getElementById('btn-next-turn').addEventListener('click', () => {
+            playBeep(330, 0.1, 'sine', 0.03); 
+            lockedNeedId = null; 
+            gameData.heldNeedId = null; 
+            intelMode = 'need'; 
+            closeHexAction();
+            gameData.turnInfo.currentPlayerIndex = (gameData.turnInfo.currentPlayerIndex + 1) % 4;
+            if (gameData.turnInfo.currentPlayerIndex === 0) gameData.turnInfo.turnNumber++;
+            saveGame(); updateUI();
+        });
+
+        // ========================================================
+        // 5. SETUP OVERLAY LOGIC
+        // ========================================================
+        const setupOverlay = document.getElementById('setup-overlay');
+        function toggleSetupOverlay(show) { setupOverlay.style.display = show ? 'flex' : 'none'; }
+
+        document.getElementById('setup-example-btn').addEventListener('click', () => {
+            playBeep(440, 0.1, 'sine', 0.02);
+            document.getElementById('setup-player-name').value = DEFAULT_GAME_DATA.players[0].name;
+            document.getElementById('setup-project-title').value = DEFAULT_GAME_DATA.activeProject.title;
+            document.getElementById('setup-project-vision').value = "Establish strategic deep-space logistics and modular habitation hubs.";
+            const minor = DEFAULT_GAME_DATA.needs.filter(n => n.ring === 'minor');
+            minor.forEach((n, idx) => {
+                if (idx < 4) {
+                    document.getElementById(`setup-minor-title-${idx+1}`).value = n.title;
+                    document.getElementById(`setup-minor-desc-${idx+1}`).value = n.description;
+                }
+            });
+            const major = DEFAULT_GAME_DATA.needs.filter(n => n.ring === 'major');
+            major.forEach((n, idx) => {
+                if (idx < 3) {
+                    document.getElementById(`setup-major-title-${idx+1}`).value = n.title;
+                    document.getElementById(`setup-major-desc-${idx+1}`).value = n.description;
+                }
+            });
+        });
+
+        document.getElementById('setup-cancel-btn').addEventListener('click', () => {
+            playBeep(220, 0.1, 'sine', 0.05); toggleSetupOverlay(false);
+        });
+
+        document.getElementById('setup-play-btn').addEventListener('click', () => {
+            const pNameInput = document.getElementById('setup-player-name');
+            const pTitleInput = document.getElementById('setup-project-title');
+            if (!pNameInput.value.trim() || !pTitleInput.value.trim()) {
+                if (!pNameInput.value.trim()) pNameInput.classList.add('error');
+                if (!pTitleInput.value.trim()) pTitleInput.classList.add('error');
+                return;
+            }
+            pNameInput.classList.remove('error'); pTitleInput.classList.remove('error');
+            playBeep(880, 0.1, 'sine', 0.05);
+
+            gameData.players[0].name = pNameInput.value.trim().toUpperCase();
+            gameData.activeProject.title = pTitleInput.value.trim().toUpperCase();
+            gameData.activeProject.vision = document.getElementById('setup-project-vision').value.trim();
+            gameData.activeProject.ownerId = gameData.players[0].id;
+
+            const newNeeds = [];
+            for (let i = 1; i <= 4; i++) {
+                const t = document.getElementById(`setup-minor-title-${i}`).value.trim();
+                const d = document.getElementById(`setup-minor-desc-${i}`).value.trim();
+                newNeeds.push({ id: `m${i}`, ring: 'minor', title: t || `MINOR MODULE 0${i}`, description: d || "Functional specification pending mission start.", status: 'active' });
+            }
+            for (let i = 1; i <= 3; i++) {
+                const t = document.getElementById(`setup-major-title-${i}`).value.trim();
+                const d = document.getElementById(`setup-major-desc-${i}`).value.trim();
+                newNeeds.push({ id: `M${i}`, ring: 'major', title: t || `MAJOR STRATEGIC 0${i}`, description: d || "High-level strategic deficit awaiting resolution.", status: 'active' });
+            }
+            gameData.needs = newNeeds;
+            gameData.turnInfo = { currentPlayerIndex: 0, turnNumber: 1 };
+            gameData.players.forEach(p => p.score = 0);
+            gameData.assists = [];
+            gameData.heldNeedId = null;
+            lockedNeedId = null;
+            intelMode = 'need';
+            gameData.isMinorComplete = false; gameData.isMajorComplete = false; gameData.isProjectComplete = false;
+            document.getElementById('success-banner').style.display = 'none';
+
+            rebuildPlanetsFromNeeds();
+            saveGame(); updateUI(); toggleSetupOverlay(false);
+        });
+
+        document.getElementById('new-session-btn').addEventListener('click', resetSession);
+        document.getElementById('resume-game-btn').addEventListener('click', () => { if(loadGame()) playSuccess(); });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        createPlanets(); updateUI(); animate();
+        if (!localStorage.getItem(STORAGE_KEY)) toggleSetupOverlay(true);
+
+    </script>
+</body>
+</html>

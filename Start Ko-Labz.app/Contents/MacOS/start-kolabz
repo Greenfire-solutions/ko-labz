@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+#  Start Ko-Labz: launcher STUB. All the real logic lives in
+#     scripts/start-kolabz.sh
+#  which is a plain file outside the bundle. Edit that, not this.
+#  (Editing this file breaks the bundle's ad-hoc signature: re-seal with
+#   codesign --force --deep -s - "Start Ko-Labz.app")
+#
+#  Protected folders (Desktop, Downloads, Documents) are guarded by macOS
+#  privacy (TCC): this bundle may be refused any read there, silently. So when
+#  it cannot read the logic script it asks Terminal to OPEN a small .command
+#  file instead. Opening a file needs no permission of any kind (unlike telling
+#  Terminal to "do script", which needs an Automation grant this bundle never
+#  got), runs the logic, and the logic closes that window itself.
+#
+set -u
+
+SELF="$(cd "$(dirname "$0")" && pwd)"      # .../Start Ko-Labz.app/Contents/MacOS
+APP="$(cd "$SELF/../.." && pwd)"           # .../Start Ko-Labz.app
+ROOT="$(dirname "$APP")"                   # the Ko-Labz folder
+
+# Logs and the handoff file live in ~/Library, which is never protected.
+LOGDIR="$HOME/Library/Logs/Ko-Labz"
+HANDDIR="$HOME/Library/Application Support/Project Launchers"
+mkdir -p "$LOGDIR" "$HANDDIR" 2>/dev/null
+LOG="$LOGDIR/launcher.log"
+say() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] stub: $*" >> "$LOG" 2>/dev/null; }
+die() {
+  say "FAILED: $1"
+  /usr/bin/osascript -e 'activate' -e "display dialog \"$1\" with title \"Start Ko-Labz\" buttons {\"OK\"} default button 1 with icon caution" >/dev/null 2>&1
+  exit 1
+}
+
+say "--- click --- app: $APP"
+
+# A freshly downloaded app opened where it was unzipped is run by macOS from a
+# random read-only copy (App Translocation), away from the rest of the folder.
+# Ask macOS where the real one is, and use that folder.
+case "$APP" in
+  */AppTranslocation/*)
+    ORIG="$(/usr/bin/osascript -l JavaScript -e '
+      ObjC.import("Foundation");
+      ObjC.bindFunction("SecTranslocateCreateOriginalPathForURL", ["id", ["id", "void*"]]);
+      function run(a) { var o = $.SecTranslocateCreateOriginalPathForURL($.NSURL.fileURLWithPath(a[0]), null); return o ? ObjC.unwrap(o.path) : ""; }' "$APP" 2>>"$LOG")"
+    say "translocated; original: ${ORIG:-unknown}"
+    case "$ORIG" in
+      ''|*/AppTranslocation/*) die "macOS opened Start Ko-Labz from a temporary copy, away from its folder.\n\nMove the whole Ko-Labz folder into Applications, then double-click Start Ko-Labz there. Or double-click Start Ko-Labz.command in the folder." ;;
+    esac
+    ROOT="$(dirname "$ORIG")"
+    ;;
+esac
+LOGIC="$ROOT/scripts/start-kolabz.sh"
+
+# Say something at once: when Terminal is busy the hand-off below can take
+# half a minute, and a click with no answer looks broken.
+[ "${KOLABZ_LAUNCH_QUIET:-0}" = 1 ] || /usr/bin/osascript -e 'display notification "Starting Ko-Labz. Your browser opens in a moment." with title "Ko-Labz"' >/dev/null 2>&1 &
+
+# stat() survives a privacy denial, reading does not.
+[ -e "$LOGIC" ] || die "Can't find the launcher script.\n\nExpected: $LOGIC\n\nKeep Start Ko-Labz in the top level of the Ko-Labz folder."
+
+if /bin/cat "$LOGIC" >/dev/null 2>&1; then
+  say "readable: running directly"
+  exec /bin/bash "$LOGIC"
+fi
+
+say "blocked by privacy (TCC): handing a .command file to Terminal"
+CMDF="$HANDDIR/Start Ko-Labz.command"
+printf '#!/bin/bash\nexec /bin/bash %q --via-terminal\n' "$LOGIC" > "$CMDF" || die "Could not write $CMDF"
+chmod +x "$CMDF"
+# First without Terminal, where this Mac has that helper: launchd starts node,
+# which may read the Desktop. A frozen Terminal once made every icon do nothing.
+NT="$HANDDIR/no-terminal.sh"
+[ -x "$NT" ] && /bin/bash "$NT" "$LOGIC" "$LOG" && exit 0
+/usr/bin/open -g -a Terminal "$CMDF" || die "Could not open Terminal.\n\nOpen Terminal yourself and run:\n\nbash '$LOGIC'"
+exit 0
